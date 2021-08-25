@@ -40,6 +40,9 @@ public class UIPopup : MonoBehaviour
         ItemDisplayInstances = new List<ItemDisplay>();
         TabButtons = GetComponentsInChildren<UIPopupTabButton>();
         ItemDisplayPrefab.gameObject.SetActive(false);
+        CostDisplayPrefab?.gameObject.SetActive(false);
+        RewardDisplayPrefab?.gameObject.SetActive(false);
+
         if (ConfirmSelectionButton != null)
             ConfirmSelectionButton.interactable = false;
 
@@ -87,6 +90,17 @@ public class UIPopup : MonoBehaviour
         foreach (ItemDisplay display in ItemDisplayInstances)
             Destroy(display.gameObject);
         ItemDisplayInstances.Clear();
+        ClearCostRewardDisplays();
+    }
+
+    void ClearCostRewardDisplays()
+    {
+        if (CostsContainer != null)
+            foreach (ItemDisplay display in CostsContainer.GetComponentsInChildren<ItemDisplay>())
+                Destroy(display.gameObject);
+        if (RewardsContainer != null)
+            foreach (ItemDisplay display in RewardsContainer.GetComponentsInChildren<ItemDisplay>())
+                Destroy(display.gameObject);
     }
 
     void CreateItemDisplays(IEnumerable<ItemDefinition> itemDefinitions)
@@ -104,6 +118,7 @@ public class UIPopup : MonoBehaviour
 
     List<ItemDisplay> CreateItemDisplays(ItemQuantity[] Quantities, ItemDisplay DisplayPrefab, Transform Container)
     {
+        DisplayPrefab.gameObject.SetActive(false);
         List<ItemDisplay> Displays = new List<ItemDisplay>();
         foreach (ItemQuantity itemQuantity in Quantities)
         {
@@ -111,15 +126,19 @@ public class UIPopup : MonoBehaviour
             itemDisplayInstance.gameObject.SetActive(true);
             itemDisplayInstance.transform.SetParent(Container);
             itemDisplayInstance.LoadItemDefinition(itemQuantity.itemDefinition);
+            if (itemDisplayInstance.QuantityText != null)
+                itemDisplayInstance.QuantityText.text = itemQuantity.ItemAmount.ToString();
             Displays.Add(itemDisplayInstance);
         }
+
+        UpdateInteractability();
         return Displays;
     }
 
     void UpdateInteractability()
     {
         //Update Displays Selectability
-        switch (Type)
+        /*switch (Type)
         {
             case PopupType.Store:
                 foreach (ItemDisplay display in ItemDisplayInstances)
@@ -133,7 +152,7 @@ public class UIPopup : MonoBehaviour
                 foreach (ItemDisplay display in ItemDisplayInstances)
                     display.GetComponent<Button>().interactable = GameManager.instance.Player.CanAfford(display.loadedItem.Ingredients);
                 break;
-        }
+        }*/
 
         //Update Confirmation Button Selectbility
         bool canAfford = false;
@@ -181,6 +200,20 @@ public class UIPopup : MonoBehaviour
 
         SelectedItemDetailedDisplay.LoadItemDefinition(itemDisplay.loadedItem);
         UpdateInteractability();
+
+        //Cost Reward Displays
+        ClearCostRewardDisplays();
+
+        if (CostsContainer != null)
+            CreateItemDisplays(itemDisplay.loadedItem.Ingredients, CostDisplayPrefab, CostsContainer);
+
+        if (RewardsContainer != null)
+        {
+            CreateItemDisplays(itemDisplay.loadedItem.BuildRewards, RewardDisplayPrefab, RewardsContainer);
+            if(Type == PopupType.Factory) //could delete this if we don't have a special RecipeResultAmount
+                CreateItemDisplays(new ItemQuantity[] { new ItemQuantity(itemDisplay.loadedItem, itemDisplay.loadedItem.RecipeResultAmount) },
+                    RewardDisplayPrefab, RewardsContainer);
+        }
     }
 
     public void ConfirmSelection()

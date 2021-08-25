@@ -15,4 +15,10 @@ public class ItemQuantity
 {
     public ItemDefinition itemDefinition;
     public int ItemAmount;
+
+    public ItemQuantity(ItemDefinition itemDefinition, int itemAmount)
+    {
+        this.itemDefinition = itemDefinition;
+        this.ItemAmount = itemAmount;
+    }
 }
